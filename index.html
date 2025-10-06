@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>仮想業務シミュレーションとアンケート</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Roboto+Mono:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Noto Sans JP", sans-serif;
+      }
+      .font-roboto-mono {
+        font-family: "Roboto Mono", monospace;
+      }
+      .fade-in {
+        animation: fadeIn 0.5s ease-in-out forwards;
+      }
+      .fade-out {
+        animation: fadeOut 0.5s ease-in-out forwards;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes fadeOut {
+        from {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+      }
+      .option-btn {
+        transition: all 0.2s ease-in-out;
+      }
+      .option-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+      .correct-answer {
+        background-color: #28a745 !important;
+        color: white !important;
+        border-color: #28a745 !important;
+      }
+      .wrong-answer {
+        background-color: #dc3545 !important;
+        color: white !important;
+        border-color: #dc3545 !important;
+      }
+      .partial-answer {
+        background-color: #ffc107 !important;
+        color: #212529 !important;
+        border-color: #ffc107 !important;
+      }
+
+      /* スクロールバーのスタイル */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4"
+  >
+    <div
+      id="container"
+      class="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden"
+    >
+      <!-- Start Screen -->
+      <div id="start-screen" class="p-8 md:p-12 text-center fade-in">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+          クレーン誘導作業シミュレーション
+        </h1>
+        <p class="text-gray-600 mb-8">
+          あなたの安全判断力が試されます。準備はいいですか？
+        </p>
+        <button
+          onclick="startGame()"
+          class="bg-blue-600 text-white font-bold py-3 px-10 rounded-lg hover:bg-blue-700 transition-all duration-300 shadow-lg transform hover:scale-105"
+        >
+          シミュレーション開始
+        </button>
+      </div>
+
+      <!-- Game Screen -->
+      <div id="game-screen" class="hidden">
+        <header
+          class="p-4 bg-gray-800 text-white flex justify-between items-center"
+        >
+          <h2 class="text-lg font-bold">
+            ステップ <span id="current-step">1</span> / 5
+          </h2>
+          <div class="text-right">
+            <span class="text-sm opacity-80">SCORE</span>
+            <p id="score" class="text-2xl font-roboto-mono font-bold">0</p>
+          </div>
+        </header>
+        <main id="quiz-content" class="p-6 md:p-8">
+          <div id="question-image-container" class="mb-6">
+            <img
+              id="question-image"
+              src=""
+              alt="状況"
+              class="w-full h-auto max-h-64 object-contain rounded-lg bg-gray-200"
+            />
+          </div>
+          <p
+            id="question-text"
+            class="text-lg font-semibold leading-relaxed mb-6"
+          ></p>
+          <div id="options-container" class="grid grid-cols-1 gap-4"></div>
+          <div
+            id="feedback-container"
+            class="mt-6 p-4 rounded-lg text-center font-semibold hidden"
+          ></div>
+        </main>
+      </div>
+
+      <!-- Result Screen -->
+      <div id="result-screen" class="p-8 md:p-12 text-center hidden">
+        <h2 class="text-2xl font-bold mb-4">仮想業務シミュレーション結果</h2>
+        <div class="bg-gray-100 rounded-lg p-6 my-6 inline-block">
+          <p class="text-gray-600">あなたの安全遵守スコア</p>
+          <p
+            id="final-score"
+            class="text-6xl font-bold font-roboto-mono text-blue-600 my-2"
+          >
+            100
+          </p>
+          <p class="text-gray-600">
+            安全ランク:
+            <span id="final-rank" class="font-bold text-2xl">S</span>
+          </p>
+        </div>
+        <div class="mt-4">
+          <h3 class="font-bold text-lg">フィードバック</h3>
+          <p
+            id="final-feedback"
+            class="text-gray-600 mt-2 max-w-2xl mx-auto"
+          ></p>
+        </div>
+        <button
+          onclick="startSurvey()"
+          class="mt-10 bg-green-600 text-white font-bold py-3 px-10 rounded-lg hover:bg-green-700 transition-all duration-300 shadow-lg transform hover:scale-105"
+        >
+          アンケートに進む
+        </button>
+      </div>
+
+      <!-- Survey Screen -->
+      <div id="survey-screen" class="hidden p-6 sm:p-8 md:p-12">
+        <div class="w-full bg-gray-200 rounded-full h-2.5 mb-6 shadow-inner">
+          <div
+            class="bg-green-600 h-2.5 rounded-full"
+            style="width: 100%"
+          ></div>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-700 mb-6 text-center">
+          実践に関するアンケート
+        </h2>
+        <form id="survey-form">
+          <div class="space-y-8">
+            <div>
+              <h3
+                class="text-xl font-bold text-blue-800 bg-blue-100 p-3 rounded-lg"
+              >
+                第一部
+              </h3>
+              <div id="questions-part1" class="mt-4 space-y-6"></div>
+            </div>
+            <div>
+              <h3
+                class="text-xl font-bold text-blue-800 bg-blue-100 p-3 rounded-lg"
+              >
+                第二部
+              </h3>
+              <div id="questions-part2" class="mt-4 space-y-6"></div>
+            </div>
+          </div>
+          <div class="mt-10 text-center">
+            <button
+              type="submit"
+              class="bg-green-600 text-white font-bold py-3 px-12 rounded-lg hover:bg-green-700 transition-colors duration-300 shadow-lg transform hover:scale-105"
+            >
+              回答を送信する
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Thank You Screen -->
+      <div id="thankyou-screen" class="hidden p-8 md:p-12 text-center">
+        <div class="py-10">
+          <svg
+            class="w-20 h-20 text-green-500 mx-auto mb-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            ></path>
+          </svg>
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">
+            ご協力ありがとうございました。
+          </h2>
+          <p class="text-gray-600">全ての工程は以上で終了です。</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // --- DOM Elements ---
+      const startScreen = document.getElementById("start-screen");
+      const gameScreen = document.getElementById("game-screen");
+      const resultScreen = document.getElementById("result-screen");
+      const surveyScreen = document.getElementById("survey-screen");
+      const thankyouScreen = document.getElementById("thankyou-screen");
+      const container = document.getElementById("container");
+
+      // --- Game State ---
+      let currentStep = 0;
+      let score = 0;
+      const quizData = [
+        {
+          question:
+            "クレーンが製品を吊り上げ、移動を開始しました。あなたの周囲には他の作業員もいます。最初に何をすべきですか？",
+          imageUrl:
+            "https://placehold.co/600x300/e2e8f0/4a5568?text=Step+1%3A+%E5%91%A8%E5%9B%B2%E7%A2%BA%E8%AA%8D",
+          options: [
+            {
+              text: "すぐにクレーンの誘導を開始する。",
+              feedback:
+                "周囲の安全確認が不十分でした！他の作業員と接触する危険があります。",
+              points: 0,
+              type: "wrong",
+            },
+            {
+              text: "周囲の作業員に『クレーン動きます、ご注意ください！』と大きな声で伝え、安全な場所へ移動したことを確認する。",
+              feedback:
+                "素晴らしい判断です！まず周囲の安全を確保することは、全ての基本です。",
+              points: 30,
+              type: "correct",
+            },
+            {
+              text: "定められた待機場所で、クレーンオペレーターからの指示を待つ。",
+              feedback:
+                "安全な行動です。しかし、より積極的に危険を周知することも重要です。",
+              points: 10,
+              type: "partial",
+            },
+          ],
+        },
+        {
+          question:
+            "誘導中、予定外の場所に資材が置かれているのを発見しました。クレーンの進路を妨げています。どうしますか？",
+          imageUrl:
+            "https://placehold.co/600x300/e2e8f0/4a5568?text=Step+2%3A+%E9%9A%9C%E5%AE%B3%E7%89%A9%E7%99%BA%E8%A6%8B",
+          options: [
+            {
+              text: "クレーンを一旦停止させ、オペレーターと他の作業員に状況を報告・相談する。",
+              feedback:
+                "的確な報告です！危険な状況では、独断せずチームで対応することが最も安全です。",
+              points: 30,
+              type: "correct",
+            },
+            {
+              text: "無視して、資材をギリギリで避けるように誘導を続ける。",
+              feedback:
+                "危険な判断です！資材と吊り荷が接触し、荷物が落下する恐れがあります。",
+              points: 0,
+              type: "wrong",
+            },
+            {
+              text: "自分で資材を急いで移動させる。",
+              feedback:
+                "その行動力は評価できますが、クレーンの近くで単独作業をするのは危険です。",
+              points: 10,
+              type: "partial",
+            },
+          ],
+        },
+        {
+          question:
+            "誘導している吊り荷が、少し揺れているように見えます。どうしますか？",
+          imageUrl:
+            "https://placehold.co/600x300/e2e8f0/4a5568?text=Step+3%3A+%E5%90%8A%E3%82%8A%E8%8D%B7%E3%81%AE%E6%8F%BA%E3%82%8C",
+          options: [
+            {
+              text: "大丈夫だろうと判断し、そのまま誘導を続ける。",
+              feedback:
+                "自己判断は危険です。荷物の揺れは落下に繋がる可能性があります。",
+              points: 0,
+              type: "wrong",
+            },
+            {
+              text: "手で荷物を押さえて揺れを止めようとする。",
+              feedback:
+                "非常に危険な行為です！吊り荷には絶対に触れないでください。",
+              points: 0,
+              type: "wrong",
+            },
+            {
+              text: "すぐに停止の合図を送り、揺れが収まるのを待ってからオペレーターに報告する。",
+              feedback:
+                "冷静で的確な対応です。異常を感じたらまず停止させることが重要です。",
+              points: 15,
+              type: "correct",
+            },
+          ],
+        },
+        {
+          question:
+            "オペレーターから、死角になっているエリアの状況を尋ねる合図がありました。どうしますか？",
+          imageUrl:
+            "https://placehold.co/600x300/e2e8f0/4a5568?text=Step+4%3A+%E6%AD%BB%E8%A7%92%E3%81%AE%E7%A2%BA%E8%AA%8D",
+          options: [
+            {
+              text: "明確なジェスチャーと声で、死角に問題がないことをハッキリと伝える。",
+              feedback:
+                "素晴らしい連携です！オペレーターとの正確なコミュニケーションが安全を守ります。",
+              points: 15,
+              type: "correct",
+            },
+            {
+              text: "よく見えないが、多分大丈夫だろうと「OK」の合図を送る。",
+              feedback:
+                "不確実な情報は事故の原因になります。見えない場合は正直に伝えましょう。",
+              points: 0,
+              type: "wrong",
+            },
+            {
+              text: "自分の持ち場ではないので無視する。",
+              feedback:
+                "チームの一員としての責任を果たしましょう。連携不足は危険です。",
+              points: 0,
+              type: "wrong",
+            },
+          ],
+        },
+        {
+          question:
+            "荷物を無事に所定の位置に降ろしました。作業完了です。次に何をしますか？",
+          imageUrl:
+            "https://placehold.co/600x300/e2e8f0/4a5568?text=Step+5%3A+%E4%BD%9C%E6%A5%AD%E5%AE%8C%E4%BA%86",
+          options: [
+            {
+              text: "すぐにその場を離れ、次の自分の仕事に向かう。",
+              feedback:
+                "最後まで気を抜かずに。フックが安全な位置に戻るまでが作業です。",
+              points: 0,
+              type: "wrong",
+            },
+            {
+              text: "オペレーターに作業完了の合図を送り、フックが安全な高さまで巻き上げられるのを確認する。",
+              feedback:
+                "完璧な締めくくりです！最後の安全確認まで行うのがプロの仕事です。",
+              points: 10,
+              type: "correct",
+            },
+            {
+              text: "同僚と雑談を始める。",
+              feedback:
+                "作業エリアでの私語は集中力を欠き、危険です。安全な場所で休憩しましょう。",
+              points: 0,
+              type: "wrong",
+            },
+          ],
+        },
+      ];
+
+      // --- Game Functions ---
+      function startGame() {
+        currentStep = 0;
+        score = 0;
+        startScreen.classList.add("hidden");
+        gameScreen.classList.remove("hidden");
+        gameScreen.classList.add("fade-in");
+        renderQuiz();
+      }
+
+      function renderQuiz() {
+        // Reset feedback and options
+        document.getElementById("feedback-container").classList.add("hidden");
+        document.getElementById("options-container").innerHTML = "";
+
+        const quiz = quizData[currentStep];
+        document.getElementById("current-step").innerText = currentStep + 1;
+        document.getElementById("score").innerText = score;
+        document.getElementById("question-image").src = quiz.imageUrl;
+        document.getElementById("question-text").innerText = quiz.question;
+
+        quiz.options.forEach((option, index) => {
+          const button = document.createElement("button");
+          button.innerText = option.text;
+          button.className =
+            "option-btn w-full text-left p-4 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-100 hover:border-blue-500";
+          button.onclick = () => selectAnswer(index);
+          document.getElementById("options-container").appendChild(button);
+        });
+        // Fade in new question
+        document.getElementById("quiz-content").classList.remove("fade-out");
+        document.getElementById("quiz-content").classList.add("fade-in");
+      }
+
+      function selectAnswer(index) {
+        const quiz = quizData[currentStep];
+        const selectedOption = quiz.options[index];
+
+        score += selectedOption.points;
+        document.getElementById("score").innerText = score;
+
+        const feedbackEl = document.getElementById("feedback-container");
+        feedbackEl.innerText = selectedOption.feedback;
+        feedbackEl.classList.remove(
+          "hidden",
+          "bg-green-100",
+          "text-green-800",
+          "bg-red-100",
+          "text-red-800",
+          "bg-yellow-100",
+          "text-yellow-800"
+        );
+
+        // Apply feedback styles
+        const buttons = document.querySelectorAll(".option-btn");
+        buttons.forEach((btn, i) => {
+          btn.disabled = true;
+          if (i === index) {
+            if (selectedOption.type === "correct") {
+              btn.classList.add("correct-answer");
+              feedbackEl.classList.add("bg-green-100", "text-green-800");
+            } else if (selectedOption.type === "wrong") {
+              btn.classList.add("wrong-answer");
+              feedbackEl.classList.add("bg-red-100", "text-red-800");
+            } else {
+              btn.classList.add("partial-answer");
+              feedbackEl.classList.add("bg-yellow-100", "text-yellow-800");
+            }
+          } else {
+            btn.classList.add("opacity-50");
+          }
+        });
+
+        setTimeout(() => {
+          currentStep++;
+          if (currentStep < quizData.length) {
+            document.getElementById("quiz-content").classList.add("fade-out");
+            document.getElementById("quiz-content").classList.remove("fade-in");
+            // Wait for fade-out to complete before rendering next question
+            setTimeout(renderQuiz, 500);
+          } else {
+            showResult();
+          }
+        }, 2500); // Wait 2.5 seconds before next step
+      }
+
+      function showResult() {
+        gameScreen.classList.add("hidden");
+        resultScreen.classList.remove("hidden");
+        resultScreen.classList.add("fade-in");
+
+        let rank = "";
+        let feedback = "";
+
+        if (score >= 90) {
+          rank = "S";
+          feedback =
+            "高い判断力です！全ての作業において、完璧な安全行動を実践されました。その模範的な安全意識・行動が、職場全体の安全レベルを引き上げる力となります。";
+        } else if (score >= 70) {
+          rank = "A";
+          feedback =
+            "素晴らしい安全意識です。ほとんどの状況で的確な判断ができています。危険予知能力も高く、信頼できる作業者です。";
+        } else if (score >= 50) {
+          rank = "B";
+          feedback =
+            "良好な結果です。基本的な安全行動は身についています。しかし、いくつかのイレギュラーな状況で判断に迷いが見られました。再確認で更なるレベルアップが期待できます。";
+        } else if (score >= 30) {
+          rank = "C";
+          feedback =
+            "要注意です。重要な安全確認がいくつか見落とされています。もう一度、基本手順や潜む危険について再確認しましょう。";
+        } else {
+          rank = "D";
+          feedback =
+            "危険な兆候が見られます。自己判断が大きな事故につながる可能性があります。すぐに安全手順の教育を受け直し、基本的なルールを徹底してください。";
+        }
+
+        document.getElementById("final-score").innerText = score;
+        document.getElementById("final-rank").innerText = rank;
+        document.getElementById("final-feedback").innerText = feedback;
+      }
+
+      function startSurvey() {
+        resultScreen.classList.add("hidden");
+        surveyScreen.classList.remove("hidden");
+        surveyScreen.classList.add("fade-in");
+        window.scrollTo(0, 0);
+      }
+
+      // --- Survey Functions (from previous implementation) ---
+      const surveyQuestions = [
+        // 第一部
+        { part: 1, text: "私は安全行動を確実に実行できる自信がある" },
+        { part: 1, text: "どんな状況でも、安全に行動できるスキルがあると思う" },
+        { part: 1, text: "安全行動をすれば、事故が減ると実感している" },
+        { part: 1, text: "安全行動はチーム全体にも良い影響があると感じている" },
+        { part: 1, text: "安全を守るのは自分の信念に合っている" },
+        { part: 1, text: "安全作業をしていると気分が良い" },
+        { part: 1, text: "自分の意思で安全を重視している" },
+        { part: 1, text: "安全行動の重要性は自分でも納得している" },
+        { part: 1, text: "安全が品質や納期にも関係すると理解している" },
+        { part: 1, text: "安全を守る意味を自分なりに理解している" },
+        { part: 1, text: "安全を怠ると後悔しそうだから守っている" },
+        { part: 1, text: "注意されないために守っている" },
+        { part: 1, text: "自分の評価を下げたくないから安全に配慮している" },
+        { part: 1, text: "ルールだから安全を守っている" },
+        { part: 1, text: "上司の指示があるからやっている" },
+        { part: 1, text: "罰を避けるために安全確認している" },
+        { part: 1, text: "今後も安全行動を高めていきたいと思っている" },
+        { part: 1, text: "現場の安全性を自分の力でよくしたいという目標がある" },
+        { part: 1, text: "次の作業でも、安全確認を意識して取り組むつもりだ" },
+        {
+          part: 1,
+          text: "少しでも危ないと感じたら、すぐに対応・報告しようと思っている",
+        },
+        { part: 1, text: "普段から安全確認を実践できている" },
+        { part: 1, text: "安全ルール・手順を省略せず実行している" },
+        // 第二部
+        {
+          part: 2,
+          text: "当工場の技術は業界の発展に貢献していると実感している",
+        },
+        {
+          part: 2,
+          text: "製造業という産業に携わることは、社会的に価値のあることだと思う",
+        },
+        {
+          part: 2,
+          text: "自分の仕事は、会社の成長や成果にしっかりと貢献していると感じる",
+        },
+        { part: 2, text: "私の努力は、職場やチームの成功に役立っていると思う" },
+        {
+          part: 2,
+          text: "上司や同僚は、私の働きに対して正当に評価してくれている",
+        },
+        { part: 2, text: "私の存在は、チームにとって必要だと思う" },
+        {
+          part: 2,
+          text: "自分の役割が職場にとってどのような意味を持つかを明確に理解している",
+        },
+        {
+          part: 2,
+          text: "職場の中で自分が何を期待されているのかがはっきりしている",
+        },
+        {
+          part: 2,
+          text: "私は、自分の仕事を高いレベルで遂行できるスキルを持っていると自信を持っている",
+        },
+        {
+          part: 2,
+          text: "日々の仕事の中で、自分の技術力が活かされていると感じている",
+        },
+        {
+          part: 2,
+          text: "この仕事に携わっていることに、強い誇りと意味を感じている",
+        },
+        {
+          part: 2,
+          text: "今の職業は、自分の生き方や価値観に合っていると感じている",
+        },
+        {
+          part: 2,
+          text: "私は，業務上の手続きや基本ルールがなぜ安全につながるか明確に理解して，業務に取り組んでいる",
+        },
+        { part: 2, text: "慣れた作業であっても毎回安全を意識して行動している" },
+        { part: 2, text: "安全に作業することは重要である" },
+        {
+          part: 2,
+          text: "自分の職務を果たすことが，同僚や職場，組織にどのように貢献するかを理解している",
+        },
+        { part: 2, text: "自分の職務を完了させるまで粘り強く取り組んでいる" },
+        {
+          part: 2,
+          text: "自分に与えられた職務を完了することに大きな意義を感じて，職務に従事している",
+        },
+        {
+          part: 2,
+          text: "どうすれば同僚以上に成果（業績や評価）を挙げることができるかを理解している",
+        },
+        {
+          part: 2,
+          text: "同僚よりも優れた成果（業績，評価）を得るまで，決して諦めずに職務に取り組み続けている",
+        },
+        {
+          part: 2,
+          text: "同僚よりも優れた成果（業績，評価）をあげることは，今の私にとって大きな喜びである",
+        },
+        {
+          part: 2,
+          text: "どうすれば同僚や上司とこれまで以上に質の高い協力ができるかについて考えている",
+        },
+        { part: 2, text: "継続して同僚と仲良くしようとしている" },
+        {
+          part: 2,
+          text: "同僚や上司と協力的に関わることができるよう気を配っている",
+        },
+        {
+          part: 2,
+          text: "どうすれば今以上に自分を成長させることができるかを考えている",
+        },
+        {
+          part: 2,
+          text: "仕事でうまくいかないときにも，学ぶ姿勢を持ち続けている",
+        },
+        { part: 2, text: "仕事で新しい知識や技能を身につけることが好きだ" },
+        {
+          part: 2,
+          text: "作業の安全性を高めるために、自分から改善提案をしている",
+        },
+        { part: 2, text: "他の作業者にも安全作業を呼びかけている" },
+        { part: 2, text: "作業マニュアルや安全手順を忠実に守っている" },
+        { part: 2, text: "安全ルールの重要性を日々意識して行動している" },
+        { part: 2, text: "操作ミスをしそうになったことがあった" },
+        { part: 2, text: "手順の抜けや思い違いに気づいたことがあった" },
+        {
+          part: 2,
+          type: "free_text",
+          text: "（自由記述回答）安全に関するモチベーションを高めるために、職場でどのような工夫が必要だと思いますか？",
+        },
+        {
+          part: 2,
+          type: "free_text",
+          text: "（自由記述回答）あなたがやりがいを感じる瞬間はどんな時ですか？",
+        },
+      ];
+
+      function createQuestionElement(question, index) {
+        const qNum = index + 1;
+        const container = document.createElement("div");
+        container.className =
+          "p-4 border border-gray-200 rounded-lg bg-gray-50";
+
+        const questionText = document.createElement("p");
+        questionText.className = "font-semibold text-gray-700 mb-3";
+        questionText.textContent = `${qNum}. ${question.text}`;
+        container.appendChild(questionText);
+
+        if (question.type === "free_text") {
+          const textarea = document.createElement("textarea");
+          textarea.name = `q${qNum}`;
+          textarea.rows = 4;
+          textarea.className =
+            "w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+          textarea.placeholder = "ご自由にお書きください";
+          container.appendChild(textarea);
+        } else {
+          const optionsContainer = document.createElement("div");
+          optionsContainer.className =
+            "flex flex-wrap gap-x-6 gap-y-2 items-center justify-center sm:justify-start";
+          const options = [
+            "全くそう思わない",
+            "そう思わない",
+            "どちらともいえない",
+            "そう思う",
+            "非常にそう思う",
+          ];
+
+          options.forEach((option, i) => {
+            const label = document.createElement("label");
+            label.className =
+              "flex items-center space-x-2 cursor-pointer text-sm text-gray-600";
+
+            const radio = document.createElement("input");
+            radio.type = "radio";
+            radio.name = `q${qNum}`;
+            radio.value = i + 1;
+            radio.required = true;
+            radio.className =
+              "form-radio h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500";
+
+            label.appendChild(radio);
+            label.appendChild(document.createTextNode(option));
+            optionsContainer.appendChild(label);
+          });
+          container.appendChild(optionsContainer);
+        }
+        return container;
+      }
+
+      function populateQuestions() {
+        const part1Container = document.getElementById("questions-part1");
+        const part2Container = document.getElementById("questions-part2");
+
+        surveyQuestions.forEach((q, i) => {
+          const el = createQuestionElement(q, i);
+          if (q.part === 1) {
+            part1Container.appendChild(el);
+          } else {
+            part2Container.appendChild(el);
+          }
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        populateQuestions();
+        const form = document.getElementById("survey-form");
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const formData = new FormData(form);
+          const answers = {};
+          for (let [key, value] of formData.entries()) {
+            answers[key] = value;
+          }
+          console.log("アンケート結果:", answers);
+
+          surveyScreen.classList.add("hidden");
+          thankyouScreen.classList.remove("hidden");
+          thankyouScreen.classList.add("fade-in");
+        });
+      });
+    </script>
+  </body>
+</html>
